@@ -8,9 +8,9 @@
 
 """
 
-__author__ = 'francis.lapointe5@usherbrooke.ca'
-__date__ = '2023-08-03'
-__copyright__ = 'Copyright 2023, Francis Lapointe'
+__author__ = "francis.lapointe5@usherbrooke.ca"
+__date__ = "2023-08-03"
+__copyright__ = "Copyright 2023, Francis Lapointe"
 
 import unittest
 
@@ -19,6 +19,7 @@ from qgis.PyQt.QtGui import QDialogButtonBox, QDialog
 from plugin_exporter_dialog import PluginExporterDialog
 
 from utilities import get_qgis_app
+
 QGIS_APP = get_qgis_app()
 
 
@@ -36,20 +37,20 @@ class PluginExporterDialogTest(unittest.TestCase):
     def test_dialog_ok(self):
         """Test we can click OK."""
 
-        button = self.dialog.button_box.button(QDialogButtonBox.Ok)
+        button = self.dialog.button_box.button(QDialogButtonBox.StandardButton.Ok)
         button.click()
         result = self.dialog.result()
-        self.assertEqual(result, QDialog.Accepted)
+        self.assertEqual(result, QDialog.DialogCode.Accepted)
 
     def test_dialog_cancel(self):
         """Test we can click cancel."""
-        button = self.dialog.button_box.button(QDialogButtonBox.Cancel)
+        button = self.dialog.button_box.button(QDialogButtonBox.StandardButton.Cancel)
         button.click()
         result = self.dialog.result()
-        self.assertEqual(result, QDialog.Rejected)
+        self.assertEqual(result, QDialog.DialogCode.Rejected)
+
 
 if __name__ == "__main__":
     suite = unittest.makeSuite(PluginExporterDialogTest)
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
-
