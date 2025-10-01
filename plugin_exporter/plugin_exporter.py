@@ -21,6 +21,7 @@
  *                                                                         *
  ***************************************************************************/
 """
+
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QLabel, QCheckBox
@@ -32,8 +33,10 @@ import os.path
 import csv
 import json
 import pathlib
+
 # Initialize Qt resources from file resources.py
 from .resources import *
+
 # Import the code for the dialog
 from .plugin_exporter_dialog import PluginExporterDialog
 
@@ -54,11 +57,10 @@ class PluginExporter:
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
-        locale = QSettings().value('locale/userLocale')[0:2]
+        locale = QSettings().value("locale/userLocale")[0:2]
         locale_path = os.path.join(
-            self.plugin_dir,
-            'i18n',
-            'PluginExporter_{}.qm'.format(locale))
+            self.plugin_dir, "i18n", "PluginExporter_{}.qm".format(locale)
+        )
 
         if os.path.exists(locale_path):
             self.translator = QTranslator()
@@ -67,7 +69,7 @@ class PluginExporter:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&Plugin Exporter')
+        self.menu = self.tr("&Plugin Exporter")
 
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
@@ -89,7 +91,7 @@ class PluginExporter:
         :rtype: QString
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate('PluginExporter', message)
+        return QCoreApplication.translate("PluginExporter", message)
 
     def add_action(
         self,
@@ -101,7 +103,8 @@ class PluginExporter:
         add_to_toolbar=True,
         status_tip=None,
         whats_this=None,
-        parent=None):
+        parent=None,
+    ):
         """Add a toolbar icon to the toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -157,9 +160,7 @@ class PluginExporter:
             self.iface.addToolBarIcon(action)
 
         if add_to_menu:
-            self.iface.addPluginToMenu(
-                self.menu,
-                action)
+            self.iface.addPluginToMenu(self.menu, action)
 
         self.actions.append(action)
 
@@ -168,12 +169,13 @@ class PluginExporter:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-        icon_path = ':/plugins/plugin_exporter/icon.png'
+        icon_path = ":/plugins/plugin_exporter/icon.png"
         self.add_action(
             icon_path,
-            text=self.tr(u'Export plugins'),
+            text=self.tr("Export plugins"),
             callback=self.run,
-            parent=self.iface.mainWindow())
+            parent=self.iface.mainWindow(),
+        )
 
         # will be set False in run()
         self.first_start = True
@@ -181,9 +183,7 @@ class PluginExporter:
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
-            self.iface.removePluginMenu(
-                self.tr(u'&Plugin Exporter'),
-                action)
+            self.iface.removePluginMenu(self.tr("&Plugin Exporter"), action)
             self.iface.removeToolBarIcon(action)
 
     def run(self):
@@ -194,8 +194,14 @@ class PluginExporter:
         if self.first_start:
             self.first_start = False
             self.dlg = PluginExporterDialog()
-            self.core_plugins = ['processing', 'otbprovider', 'grassprovider',
-                                 'db_manager', 'MetaSearch', 'sagaprovider']
+            self.core_plugins = [
+                "processing",
+                "otbprovider",
+                "grassprovider",
+                "db_manager",
+                "MetaSearch",
+                "sagaprovider",
+            ]
             self.pyplugin = pyplugin_installer.instance()
             self.pyplugin.reloadAndExportData()  # Generate metadata cache
             self.get_plugins()
@@ -211,7 +217,7 @@ class PluginExporter:
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
-        result = self.dlg.exec_()
+        result = self.dlg.exec()
         # See if OK was pressed
         if result:
             if self.dlg.rd_export.isChecked():
@@ -226,7 +232,9 @@ class PluginExporter:
         else:
             plugins = qgis.utils.available_plugins  # All plugins
         if not self.dlg.chk_core_plugins.isChecked():
-            plugins = [x for x in plugins if x not in self.core_plugins]  # Exclude core plugins
+            plugins = [
+                x for x in plugins if x not in self.core_plugins
+            ]  # Exclude core plugins
         self.add_plugins_to_table(plugins)
 
     # Adds all the installed plugins into the table
@@ -240,8 +248,10 @@ class PluginExporter:
             if metadata is None:
                 continue  # Skip plugins with no metadata
             if self.dlg.chk_official_plugins.isChecked():
-                if metadata['zip_repository'] == 'QGIS Official Plugin Repository':
-                    self.plugins_metadata.append(metadata)  # Adds the plugin metadata to the list
+                if metadata["zip_repository"] == "QGIS Official Plugin Repository":
+                    self.plugins_metadata.append(
+                        metadata
+                    )  # Adds the plugin metadata to the list
                 else:
                     continue
             else:
@@ -252,11 +262,11 @@ class PluginExporter:
             chk_selected = QCheckBox()
             chk_selected.setChecked(True)
             lbl_plugin_name = QLabel()
-            lbl_plugin_name.setText(metadata['name'])
+            lbl_plugin_name.setText(metadata["name"])
             lbl_version = QLabel()
-            lbl_version.setText(metadata['version_installed'])
+            lbl_version.setText(metadata["version_installed"])
             lbl_author = QLabel()
-            lbl_author.setText(metadata['author_name'])
+            lbl_author.setText(metadata["author_name"])
 
             table.setCellWidget(current_row, 0, chk_selected)
             table.setCellWidget(current_row, 1, lbl_plugin_name)
@@ -306,60 +316,92 @@ class PluginExporter:
                 current_widget = table.cellWidget(row, col)
                 if isinstance(current_widget, QCheckBox):
                     if not current_widget.isChecked():
-                        break   # Don't add plugins that are not checked
+                        break  # Don't add plugins that are not checked
                 elif isinstance(current_widget, QLabel):
                     current_plugin = next(
-                        (item for item in self.plugins_metadata if item["name"] == current_widget.text()), None)
+                        (
+                            item
+                            for item in self.plugins_metadata
+                            if item["name"] == current_widget.text()
+                        ),
+                        None,
+                    )
                     if current_plugin:
                         plugin_list.append(current_plugin)
         if plugin_list:
             if output_file:
                 try:
-                    if file_format == '.csv':
-                        with open(output_file, 'w', encoding='utf8', newline='') as f:
+                    if file_format == ".csv":
+                        with open(output_file, "w", encoding="utf8", newline="") as f:
                             keys = plugin_list[0].keys()
                             dict_writer = csv.DictWriter(f, keys)
                             dict_writer.writeheader()
                             if repos:
                                 for key, value in repos.items():
-                                    if key == 'QGIS Official Plugin Repository':
+                                    if key == "QGIS Official Plugin Repository":
                                         pass
                                     else:
-                                        dict_writer.writerow({'id': '-', 'name': key, 'zip_repository': value['url']})
+                                        dict_writer.writerow(
+                                            {
+                                                "id": "-",
+                                                "name": key,
+                                                "zip_repository": value["url"],
+                                            }
+                                        )
                             dict_writer.writerows(plugin_list)
-                        self.iface.messageBar().pushSuccess("Success", "Selected plugins were exported successfully.")
-                    elif file_format == '.json':
-                        with open(output_file, 'w') as file:
+                        self.iface.messageBar().pushSuccess(
+                            "Success", "Selected plugins were exported successfully."
+                        )
+                    elif file_format == ".json":
+                        with open(output_file, "w") as file:
                             if repos:
                                 for key, value in repos.items():
-                                    if key == 'QGIS Official Plugin Repository':
+                                    if key == "QGIS Official Plugin Repository":
                                         pass
                                     else:
-                                        plugin_list.insert(0, {'id': '-', 'name': key, 'zip_repository': value['url']})
+                                        plugin_list.insert(
+                                            0,
+                                            {
+                                                "id": "-",
+                                                "name": key,
+                                                "zip_repository": value["url"],
+                                            },
+                                        )
                             json.dump(plugin_list, file)
-                        self.iface.messageBar().pushSuccess("Success", "Selected plugins were exported successfully.")
+                        self.iface.messageBar().pushSuccess(
+                            "Success", "Selected plugins were exported successfully."
+                        )
                 except IsADirectoryError:
-                    self.iface.messageBar().pushMessage("Error",
-                                                        "You must select a file, not a directory.",
-                                                        level=Qgis.Critical)
+                    self.iface.messageBar().pushMessage(
+                        "Error",
+                        "You must select a file, not a directory.",
+                        level=Qgis.MessageLevel.Critical,
+                    )
                 except PermissionError:
-                    self.iface.messageBar().pushMessage("Error",
-                                                        "You don't have permission to write to this directory. Please "
-                                                        "pick another location and try again.",
-                                                        level=Qgis.Critical)
+                    self.iface.messageBar().pushMessage(
+                        "Error",
+                        "You don't have permission to write to this directory. Please "
+                        "pick another location and try again.",
+                        level=Qgis.MessageLevel.Critical,
+                    )
                 except FileNotFoundError:
-                    self.iface.messageBar().pushMessage("Error",
-                                                        "No such file or directory. "
-                                                        "Please check the path is valid.",
-                                                        level=Qgis.Critical)
+                    self.iface.messageBar().pushMessage(
+                        "Error",
+                        "No such file or directory. Please check the path is valid.",
+                        level=Qgis.MessageLevel.Critical,
+                    )
             else:
-                self.iface.messageBar().pushMessage("Error",
-                                                    "You must select an output file.",
-                                                    level=Qgis.Critical)
+                self.iface.messageBar().pushMessage(
+                    "Error",
+                    "You must select an output file.",
+                    level=Qgis.MessageLevel.Critical,
+                )
         else:
-            self.iface.messageBar().pushMessage("Error",
-                                                "At least one plugin must be selected.",
-                                                level=Qgis.Critical)
+            self.iface.messageBar().pushMessage(
+                "Error",
+                "At least one plugin must be selected.",
+                level=Qgis.MessageLevel.Critical,
+            )
 
     # Installs the plugins read from a .csv or .json file
     def import_plugins(self):
@@ -367,66 +409,81 @@ class PluginExporter:
         file_extension = pathlib.Path(input_file).suffix
         installed_plugins = qgis.utils.available_plugins
 
-        if file_extension == '.csv':
+        if file_extension == ".csv":
             try:
-                with open(input_file, 'r') as f:
+                with open(input_file, "r") as f:
                     dict_reader = csv.DictReader(f)
                     plugins = list(dict_reader)
             except:
-                self.iface.messageBar().pushMessage("Error",
-                                                    "Unable to read the CSV file.",
-                                                    level=Qgis.Critical)
+                self.iface.messageBar().pushMessage(
+                    "Error",
+                    "Unable to read the CSV file.",
+                    level=Qgis.MessageLevel.Critical,
+                )
                 return
-        elif file_extension == '.json':
+        elif file_extension == ".json":
             try:
                 f = open(input_file)
                 plugins = json.load(f)
             except:
-                self.iface.messageBar().pushMessage("Error",
-                                                    "Unable to read the JSON file.",
-                                                    level=Qgis.Critical)
+                self.iface.messageBar().pushMessage(
+                    "Error",
+                    "Unable to read the JSON file.",
+                    level=Qgis.MessageLevel.Critical,
+                )
                 return
         else:
-            self.iface.messageBar().pushMessage("Error",
-                                                "Unsupported file type.",
-                                                level=Qgis.Critical)
+            self.iface.messageBar().pushMessage(
+                "Error", "Unsupported file type.", level=Qgis.MessageLevel.Critical
+            )
             return
 
         for plugin in plugins:
             if self.dlg.chk_skip_installed.isChecked():
-                if plugin['id'] in installed_plugins:
-                    self.iface.messageBar().pushInfo("Info",
-                                                     "Skipped " + plugin['name'] + " as it's already installed.")
+                if plugin["id"] in installed_plugins:
+                    self.iface.messageBar().pushInfo(
+                        "Info",
+                        "Skipped " + plugin["name"] + " as it's already installed.",
+                    )
                     continue
             try:
-                if plugin['id'] == '-':  # It's a third party repository
+                if plugin["id"] == "-":  # It's a third party repository
                     self.add_repository(plugin)
                 else:
-                    self.pyplugin.installPlugin(plugin['id'])
-                    self.iface.messageBar().pushSuccess("Success", plugin['name'] + " was installed successfully.")
+                    self.pyplugin.installPlugin(plugin["id"])
+                    self.iface.messageBar().pushSuccess(
+                        "Success", plugin["name"] + " was installed successfully."
+                    )
             except KeyError:
-                self.iface.messageBar().pushMessage("Error",
-                                                    "Could not install " + plugin['name'] + ".",
-                                                    level=Qgis.Critical)
+                self.iface.messageBar().pushMessage(
+                    "Error",
+                    "Could not install " + plugin["name"] + ".",
+                    level=Qgis.MessageLevel.Critical,
+                )
 
     # This method is pretty much a copy of the addRepository function in
     # https://github.com/qgis/QGIS/blob/master/python/pyplugin_installer/installer.py
     def add_repository(self, repo_info):
         settings = QgsSettings()
         settings.beginGroup("app/plugin_repositories")
-        repo_name = repo_info['name']
-        repo_url = repo_info['zip_repository']
+        repo_name = repo_info["name"]
+        repo_url = repo_info["zip_repository"]
         if repo_name in repositories.all():
-            self.iface.messageBar().pushInfo("Info",
-                                             "Found a repository with the same name. Skipping repository " + repo_name +
-                                             ". This could prevent a plugin from being installed.")
+            self.iface.messageBar().pushInfo(
+                "Info",
+                "Found a repository with the same name. Skipping repository "
+                + repo_name
+                + ". This could prevent a plugin from being installed.",
+            )
         else:
             # Adds the repo inside the settings
             settings.setValue(repo_name + "/url", repo_url)
             settings.setValue(repo_name + "/authcfg", "")
             settings.setValue(repo_name + "/enabled", "True")
             self.pyplugin.reloadAndExportData()
-            self.iface.messageBar().pushSuccess("Success", repo_name + " was added to the repositories.")
+            self.iface.messageBar().pushSuccess(
+                "Success", repo_name + " was added to the repositories."
+            )
 
     # Disables and enables widgets
     def toggle_widget(self):
@@ -445,7 +502,7 @@ class PluginExporter:
 
     # Sets the file extension filter for the QgsFileWidget
     def set_filter(self):
-        if self.dlg.combo_file_format.currentText() == '.json':
-            self.dlg.file_output_export.setFilter('*.json')
-        elif self.dlg.combo_file_format.currentText() == '.csv':
-            self.dlg.file_output_export.setFilter('*.csv')
+        if self.dlg.combo_file_format.currentText() == ".json":
+            self.dlg.file_output_export.setFilter("*.json")
+        elif self.dlg.combo_file_format.currentText() == ".csv":
+            self.dlg.file_output_export.setFilter("*.csv")

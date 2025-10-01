@@ -33,4 +33,5 @@ def classFactory(iface):  # pylint: disable=invalid-name
     """
     #
     from .plugin_exporter import PluginExporter
+
     return PluginExporter(iface)
