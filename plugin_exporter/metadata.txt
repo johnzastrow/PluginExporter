@@ -45,10 +45,6 @@ experimental=False
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
 
-
-Category of the plugin: Raster, Vector, Database or Web
-# category=
-
 # If the plugin can run on QGIS Server.
 server=False
 
