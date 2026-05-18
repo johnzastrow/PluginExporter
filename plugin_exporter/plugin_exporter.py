@@ -504,10 +504,12 @@ class PluginExporter:
                 "Success", repo_name + " was added to the repositories."
             )
 
-    # Splits the third party repositories and the selected plugins into rows.
-    # Used by the human readable exports (.md and .pdf), which are export only:
-    # they cannot be imported back since they don't preserve every metadata field.
-    def build_report_rows(self, plugin_list, repos):
+    # Collects the third party repositories and every metadata field of each
+    # selected plugin. Used by the human readable exports (.md and .pdf), which
+    # are export only: they cannot be imported back. Each plugin keeps all of
+    # the fields the plugin manager exposes for it (same data as the .json
+    # export), not just a fixed subset.
+    def build_report_data(self, plugin_list, repos):
         repo_rows = []
         if repos:
             for name, value in repos.items():
@@ -515,22 +517,17 @@ class PluginExporter:
                     continue
                 repo_rows.append([name, value["url"]])
 
-        plugin_rows = []
+        plugins = []
         for plugin in plugin_list:
-            plugin_rows.append(
-                [
-                    plugin.get("name", ""),
-                    plugin.get("version_installed", ""),
-                    plugin.get("author_name", ""),
-                    plugin.get("id", ""),
-                    plugin.get("zip_repository", ""),
-                ]
-            )
-        return repo_rows, plugin_rows
+            # Preserve the metadata key order; fall back to the id for the title
+            title = plugin.get("name") or plugin.get("id") or "Unknown plugin"
+            fields = [(str(k), "" if v is None else str(v)) for k, v in plugin.items()]
+            plugins.append((title, fields))
+        return repo_rows, plugins
 
     # Builds a Markdown document listing the selected plugins
     def build_markdown(self, plugin_list, repos):
-        repo_rows, plugin_rows = self.build_report_rows(plugin_list, repos)
+        repo_rows, plugins = self.build_report_data(plugin_list, repos)
         generated = datetime.now().strftime("%Y-%m-%d %H:%M")
 
         def cell(text):
@@ -547,21 +544,26 @@ class PluginExporter:
             for row in repo_rows:
                 lines.append("| " + " | ".join(cell(c) for c in row) + " |")
             lines.append("")
-        lines += [
-            "## Plugins",
-            "",
-            "| Name | Version | Author | ID | Repository |",
-            "| --- | --- | --- | --- | --- |",
-        ]
-        for row in plugin_rows:
-            lines.append("| " + " | ".join(cell(c) for c in row) + " |")
-        lines.append("")
+        lines += ["## Plugins", ""]
+        for title, fields in plugins:
+            lines += [
+                "### " + cell(title),
+                "",
+                "| Field | Value |",
+                "| --- | --- |",
+            ]
+            for key, value in fields:
+                lines.append("| " + cell(key) + " | " + cell(value) + " |")
+            lines.append("")
         return "\n".join(lines)
 
     # Builds an HTML document used to render the PDF export
     def build_html(self, plugin_list, repos):
-        repo_rows, plugin_rows = self.build_report_rows(plugin_list, repos)
+        repo_rows, plugins = self.build_report_data(plugin_list, repos)
         generated = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        def esc(text):
+            return html.escape(str(text)).replace("\n", "<br>")
 
         def table(headers, rows):
             html_rows = [
@@ -571,9 +573,7 @@ class PluginExporter:
             ]
             for row in rows:
                 html_rows.append(
-                    "<tr>"
-                    + "".join("<td>" + html.escape(str(c)) + "</td>" for c in row)
-                    + "</tr>"
+                    "<tr>" + "".join("<td>" + esc(c) + "</td>" for c in row) + "</tr>"
                 )
             return (
                 '<table border="1" cellspacing="0" cellpadding="4" width="100%">'
@@ -590,9 +590,9 @@ class PluginExporter:
             parts.append("<h2>Third party repositories</h2>")
             parts.append(table(["Name", "URL"], repo_rows))
         parts.append("<h2>Plugins</h2>")
-        parts.append(
-            table(["Name", "Version", "Author", "ID", "Repository"], plugin_rows)
-        )
+        for title, fields in plugins:
+            parts.append("<h3>" + esc(title) + "</h3>")
+            parts.append(table(["Field", "Value"], fields))
         parts.append("</body></html>")
         return "".join(parts)
 
